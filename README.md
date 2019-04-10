@@ -1,5 +1,5 @@
 # Loan-converter-R-Shiny
-This is Shiny app code, for loan amortization plans and loan conversion from CHF tp. 
+This is Shiny app code, for loan amortization plans and loan conversion from CHF to EUR, on loan first payment day. 
 
 App preview: https://basaraba.shinyapps.io/loan_converter/
 
