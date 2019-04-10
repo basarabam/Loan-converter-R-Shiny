@@ -1,0 +1,12 @@
+name: loan_converter
+title: loan_converter
+username:
+account: basaraba
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 853385
+bundleId: 2000247
+url: https://basaraba.shinyapps.io/loan_converter/
+when: 1554896747.34348
+asMultiple: FALSE
+asStatic: FALSE
