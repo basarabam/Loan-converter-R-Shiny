@@ -15,9 +15,10 @@ library("readxl")
 library("openxlsx")
 
 library(shiny)
+library(shinythemes)
 
-#Loading data from files and Quandle
-
+#Loading data from files and Quandle, you should add Quandle key for more than 50 queries per day
+Quandl.api_key("")
 #Reading file of middle RSD/EUR exchange rate and converting to Data Frame
 exc_eur_rsd <- as.data.frame(read_csv2("Data_read/Sred_kurs_NBS.csv"))
 exc_eur_rsd <- exc_eur_rsd %>% select(Datum_Primene, Srednji_kurs)
@@ -27,14 +28,16 @@ exc_eur_rsd$Datum_Primene <- as.Date(exc_eur_rsd$Datum_Primene, format = "%d.%m.
 exc_rate <- Quandl("ECB/EURCHF")
 
 # Define UI for application that calculates loan amortization
-ui <- fluidPage(
+ui <- fluidPage(theme = shinytheme("flatly"),
         
    # Application title
    titlePanel("CHF to EUR loan converter"),
    
    # Sidebar with a slider input for loan data 
-   sidebarLayout(
-      sidebarPanel(
+   navbarPage("Calculator!",
+        tabPanel("Loan Info",
+        sidebarLayout(
+        sidebarPanel(
          numericInput("interest_rate",
                      "Interest rate on CHF loan %:",
                      min = 3.001,
@@ -67,23 +70,38 @@ ui <- fluidPage(
                    value = "2005-11-30",
                    format = "dd.mm.yyyy."),
          fileInput("placanja_rsd_file",
-                   "File with payments made, RSD:",
+                   "File with payments made with XLSX template, RSD:",
                    accept = c(".xlsx")),
-         tags$a(href='template_excel_input.xlsx', target='blank', 'Download file upload template', download = 'Template_chf_loan.xlsx',
-                downloadButton("downloadData", "Download"))
+         p("Download the Excel template Workbook, to fill the payments in RSD and upload to this converter:"),
+         tags$a(href='template_excel_input.xlsx', target='blank',
+                'Download file upload template',
+                download = 'Template_chf_loan.xlsx'),
+         br(),
+         br(),
+         p("Download data in Excel workbook:"),
+         downloadButton("downloadData", "Download in Excel")
    ),
       
       # Show a plot of the generated distribution
       mainPanel(
          tabsetPanel( type = "tabs",
-                      tabPanel("Summary", htmlOutput("summary")),
-                      tabPanel("Am_plan", DT::dataTableOutput("amortPlan")),
-                      tabPanel("Plot", plotOutput("loan_plot")),
-                      tabPanel("Payed", DT::dataTableOutput("loaded_data"))
+                      tabPanel("Loan Summary", htmlOutput("summary")),
+                      tabPanel("Amortization plan", DT::dataTableOutput("amortPlan")),
+                      tabPanel("Loan Plot", plotOutput("loan_plot")),
+                      tabPanel("Payments RSD", DT::dataTableOutput("loaded_data"))
          
-        )
-      )
+                )
+              )
+           )
+        ),
+   tabPanel("Help",
+            tags$h1("This is the help text"),
+            tags$br("Help text coming soon !")
    )
+   #Navbar close parentheses
+   )
+
+
 )
 
 # Define server logic required to draw a histogram
@@ -143,7 +161,7 @@ server <- function(input, output) {
         
         output$amortPlan <- DT::renderDataTable(DT::datatable({
                 t_p() %>% select(Payment_day, Monthly_payment_EUR, payed_principal_1, interest_1, Loan_am_down) %>%
-                        mutate_if(is.numeric, round, digits = 3, nsmall = 3, decimal.mark = ",", big.mark = ".")
+                        mutate_if(is.numeric, round, digits = 3) %>% mutate_if(is.numeric, format, nsmall = 3, decimal.mark = ",", big.mark = ".")
    }))
         #Creating reactive Excel file with sheets and data
         wb <- reactive({
@@ -174,12 +192,16 @@ server <- function(input, output) {
                             " at loan first payment ", format(input$loan_first_p_date, format = "%d.%m.%Y.")))
                 
         })
+        # Rendering loan plot for t_p() reactive object
         output$loan_plot <- renderPlot({
-                t_p() %>% mutate(year = year(Payment_day)) %>% 
-                        group_by(year) %>%
-                        summarize(paid_principal = sum(as.numeric(payed_principal_1))) %>%
-                        ggplot(aes(x = year, y = paid_principal, fill = year)) +
-                        geom_col() + theme_minimal()
+                t_p() %>% select(Payment_day, "Interest payed" = interest_1, "Principal payed" = payed_principal_1) %>%
+                        gather(key = "Payed_part", value = "Amount", -Payment_day) %>%
+                        mutate(year = year(Payment_day)) %>% 
+                        group_by(year, Payed_part) %>%
+                        summarize(paid_amount = sum(Amount)) %>%
+                        ggplot(aes(x = as.factor(year), y = paid_amount, fill = Payed_part)) +
+                        geom_col() + labs(x = "Loan years", y = "Amount EUR", title = "PAID AMOUNT THROUGH LOAN PAYMENT PERIOD") + 
+                        theme_minimal() + theme(axis.text.x = element_text(size = 12, angle = 25)) + scale_fill_brewer(palette="Paired")
         })
         
         #Reading uploaded excel file by user check this!!!
