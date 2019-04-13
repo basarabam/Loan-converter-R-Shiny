@@ -18,7 +18,7 @@ library(shiny)
 library(shinythemes)
 
 #Loading data from files and Quandle, you should add Quandle key for more than 50 queries per day
-Quandl.api_key("j3w9njL3_zx3eNfThFZQ")
+Quandl.api_key("")
 #Reading file of middle RSD/EUR exchange rate and converting to Data Frame
 exc_eur_rsd <- as.data.frame(read_csv2("Data_read/Sred_kurs_NBS.csv"))
 exc_eur_rsd <- exc_eur_rsd %>% select(Datum_Primene, Srednji_kurs)
